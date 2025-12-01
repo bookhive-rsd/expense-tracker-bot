@@ -976,25 +976,25 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 # --- FLASK KEEP ALIVE SERVER ---
-app = Flask('')
+# app = Flask('')
 
-@app.route('/')
-def home():
-    return "I am alive!"
+# @app.route('/')
+# def home():
+#     return "I am alive!"
 
-def run_http():
-    # Render sets the PORT env var. Default to 8080 if not found.
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+# def run_http():
+#     # Render sets the PORT env var. Default to 8080 if not found.
+#     port = int(os.environ.get("PORT", 8080))
+#     app.run(host='0.0.0.0', port=port)
 
-def keep_alive():
-    t = Thread(target=run_http)
-    t.start()
+# def keep_alive():
+#     t = Thread(target=run_http)
+#     t.start()
 
 # --- End Of Flask ---
 
 def main():
-    keep_alive()
+    # keep_alive()
     BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', 'YOUR_BOT_TOKEN_HERE')
     
     app = Application.builder().token(BOT_TOKEN).build()
@@ -1039,4 +1039,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
