@@ -15,7 +15,7 @@ from threading import Thread
 load_dotenv()
 
 # MongoDB Connection
-MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
+MONGO_URI = os.getenv('MONGO_URI', 'mongodb+srv://bookhiversd:8D6pLujBM9rLVi8B@bookhive.7h76ryz.mongodb.net/ExpenseTrackerManage?retryWrites=true&w=majority&appName=BookHive')
 client = MongoClient(MONGO_URI)
 db = client['expense_tracker']
 users_collection = db['users']
@@ -1039,3 +1039,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
