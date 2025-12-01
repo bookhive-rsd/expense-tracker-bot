@@ -511,10 +511,10 @@ def main():
     print("Bot is starting on Render...")
     # This runs both web server (for Render) + polling
     app.run_polling(
-        allowed_updates=Update.ALL_TYPES,
-        port=port,
-        host='0.0.0.0'
-    )
+            allowed_updates=Update.ALL_TYPES,
+            drop_pending_updates=True
+        )
 
 if __name__ == '__main__':
+
     main()
