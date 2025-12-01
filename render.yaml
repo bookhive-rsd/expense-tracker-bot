@@ -1,9 +1,15 @@
 services:
   - type: web
     name: expense-tracker-bot
-    env: python
+    env: python  # This triggers Python detection
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: |
+      python -m venv .venv
+      source .venv/bin/activate  # Linux/Mac
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      # Force Python 3.12 compatibility (Render honors this)
+      echo "python3.12" > .python-version
     startCommand: python app.py
     envVars:
       TELEGRAM_BOT_TOKEN: 
