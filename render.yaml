@@ -1,18 +1,18 @@
 services:
   - type: web
     name: expense-tracker-bot
-    env: python  # This triggers Python detection
+    env: python
     plan: free
     buildCommand: |
-      python -m venv .venv
-      source .venv/bin/activate  # Linux/Mac
+      # Force Python 3.12 install
+      apt-get update && apt-get install -y python3.12 python3.12-venv
+      python3.12 -m venv .venv
+      source .venv/bin/activate
       pip install --upgrade pip
       pip install -r requirements.txt
-      # Force Python 3.12 compatibility (Render honors this)
-      echo "python3.12" > .python-version
     startCommand: python app.py
     envVars:
       TELEGRAM_BOT_TOKEN: 
-        value: 8331852123:AAEsXzS_0riHRuDI3P-caN3gLtRV6colVjo
+        value: 8331852123:AAEsXzS_0riHRuDI3P-caN3gLtRV6colVjo  # Revoke old one via @BotFather!
       MONGO_URI: 
         value: mongodb+srv://bookhiversd:8D6pLujBM9rLVi8B@bookhive.7h76ryz.mongodb.net/DailyExpenseTrackerApp?retryWrites=true&w=majority&appName=BookHive
