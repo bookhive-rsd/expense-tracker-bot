@@ -976,11 +976,11 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 # --- FLASK KEEP ALIVE SERVER ---
-# app = Flask('')
+app = Flask('')
 
-# @app.route('/')
-# def home():
-#     return "I am alive!"
+@app.route('/')
+def home():
+    return "I am alive!"
 
 # def run_http():
 #     # Render sets the PORT env var. Default to 8080 if not found.
@@ -1039,5 +1039,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
