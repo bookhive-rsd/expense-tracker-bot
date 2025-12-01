@@ -475,7 +475,7 @@ def main():
         return
 
     app = Application.builder().token(BOT_TOKEN).build()
-
+    
     conv_handler = ConversationHandler(
         entry_points=[
             CommandHandler('start', start),
@@ -500,21 +500,17 @@ def main():
             CallbackQueryHandler(button_handler)
         ],
         allow_reentry=True,
-        per_message=False
+        per_message=False  # Keep as-is; warning is informational only
     )
-
+    
     app.add_handler(conv_handler)
-
-    # Get port from Render
-    port = int(os.environ.get('PORT', 10000))
-
-    print("Bot is starting on Render...")
-    # This runs both web server (for Render) + polling
-    app.run_polling(
-            allowed_updates=Update.ALL_TYPES,
-            drop_pending_updates=True
-        )
 
 if __name__ == '__main__':
 
     main()
+
+    print("🤖 Bot is starting on Render...")
+    app.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True  # Clears stale updates on restart
+    )
