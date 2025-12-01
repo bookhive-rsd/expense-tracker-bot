@@ -1,4 +1,7 @@
 import os
+import threading
+import time
+from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, ConversationHandler, ContextTypes, filters
 from pymongo import MongoClient
@@ -468,7 +471,24 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('❌ Operation cancelled. Use /start to begin again.')
     return ConversationHandler.END
 
-async def main():
+# =====================================================================
+# FIXED MAIN FUNCTION FOR RENDER (Polling + Flask Health Check)
+# =====================================================================
+
+def run_flask():
+    """Simple Flask app for Render health check (runs on $PORT)."""
+    app = Flask(__name__)
+
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def catch_all(path):
+        return "Bot is alive and tracking expenses! 🚀"
+
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port, debug=False)
+
+def run_bot():
+    """Run the Telegram bot polling in this thread."""
     BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
     if not BOT_TOKEN:
         print("ERROR: TELEGRAM_BOT_TOKEN not found!")
@@ -477,7 +497,10 @@ async def main():
     application = Application.builder().token(BOT_TOKEN).build()
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
+        entry_points=[
+            CommandHandler('start', start),
+            CallbackQueryHandler(button_handler)  # Handles buttons globally
+        ],
         states={
             EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, email_handler)],
             PASSWORD: [MessageHandler(filters.TEXT & ~filters.COMMAND, password_handler)],
@@ -494,48 +517,34 @@ async def main():
         },
         fallbacks=[
             CommandHandler('cancel', cancel),
-            CallbackQueryHandler(button_handler),  # This handles all buttons
+            CallbackQueryHandler(button_handler)
         ],
         allow_reentry=True,
-        per_message=False,
+        per_message=False  # Ignore the warning - it's fine for your use case
     )
 
     application.add_handler(conv_handler)
 
-    print("Bot is starting on Render...")
-
-    # Start polling in background
-    await application.initialize()
-    await application.start()
-    await application.updater.start_polling(
+    print("🤖 Bot polling started...")
+    application.run_polling(
         allowed_updates=Update.ALL_TYPES,
         drop_pending_updates=True
     )
 
-    # Keep the app alive by starting a tiny web server (required by Render)
-    import asyncio
-    from aiohttp import web
+def main():
+    # Start Flask in main thread (Render detects port)
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+    print("🌐 Flask health server started on $PORT")
 
-    async def health(_):
-        return web.Response(text="Bot is alive!")
+    # Start bot in background thread
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+    print("🤖 Bot thread started")
 
-    web_app = web.Application()
-    web_app.router.add_get('/', health)
-
-    port = int(os.environ.get('PORT', 10000))
-    runner = web.ApplicationRunner(app=web_app)
-    await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', port)
-    await site.start()
-
-    print(f"Health check server running on port {port}")
-
-    # Keep the script running forever
+    # Keep main thread alive
     while True:
-        await asyncio.sleep(3600)
+        time.sleep(1)
 
-# =====================================================================
 if __name__ == '__main__':
-    import asyncio
-    asyncio.run(main())
-# ===========================================================
+    main()
