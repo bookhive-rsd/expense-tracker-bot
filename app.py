@@ -468,19 +468,16 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('❌ Operation cancelled. Use /start to begin again.')
     return ConversationHandler.END
 
-def main():
+async def main():
     BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
     if not BOT_TOKEN:
-        print("ERROR: TELEGRAM_BOT_TOKEN not found in environment variables!")
+        print("ERROR: TELEGRAM_BOT_TOKEN not found!")
         return
 
-    app = Application.builder().token(BOT_TOKEN).build()
-    
+    application = Application.builder().token(BOT_TOKEN).build()
+
     conv_handler = ConversationHandler(
-        entry_points=[
-            CommandHandler('start', start),
-            CallbackQueryHandler(button_handler)
-        ],
+        entry_points=[CommandHandler('start', start)],
         states={
             EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, email_handler)],
             PASSWORD: [MessageHandler(filters.TEXT & ~filters.COMMAND, password_handler)],
@@ -497,20 +494,48 @@ def main():
         },
         fallbacks=[
             CommandHandler('cancel', cancel),
-            CallbackQueryHandler(button_handler)
+            CallbackQueryHandler(button_handler),  # This handles all buttons
         ],
         allow_reentry=True,
-        per_message=False  # Keep as-is; warning is informational only
+        per_message=False,
     )
-    
-    app.add_handler(conv_handler)
 
-if __name__ == '__main__':
+    application.add_handler(conv_handler)
 
-    main()
+    print("Bot is starting on Render...")
 
-    print("🤖 Bot is starting on Render...")
-    app.run_polling(
+    # Start polling in background
+    await application.initialize()
+    await application.start()
+    await application.updater.start_polling(
         allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=True  # Clears stale updates on restart
+        drop_pending_updates=True
     )
+
+    # Keep the app alive by starting a tiny web server (required by Render)
+    import asyncio
+    from aiohttp import web
+
+    async def health(_):
+        return web.Response(text="Bot is alive!")
+
+    web_app = web.Application()
+    web_app.router.add_get('/', health)
+
+    port = int(os.environ.get('PORT', 10000))
+    runner = web.ApplicationRunner(app=web_app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
+
+    print(f"Health check server running on port {port}")
+
+    # Keep the script running forever
+    while True:
+        await asyncio.sleep(3600)
+
+# =====================================================================
+if __name__ == '__main__':
+    import asyncio
+    asyncio.run(main())
+# ===========================================================
