@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: expense-tracker-bot
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      TELEGRAM_BOT_TOKEN: 
+        value: 8331852123:AAEsXzS_0riHRuDI3P-caN3gLtRV6colVjo
+      MONGO_URI: 
+        value: mongodb+srv://bookhiversd:8D6pLujBM9rLVi8B@bookhive.7h76ryz.mongodb.net/DailyExpenseTrackerApp?retryWrites=true&w=majority&appName=BookHive
