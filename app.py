@@ -36,6 +36,7 @@ def hash_password(password):
 def verify_password(password, hashed):
     return bcrypt.checkpw(password.encode('utf-8'), hashed)
 
+# [ALL YOUR EXISTING HANDLERS - EXACTLY AS BEFORE]
 # Start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
@@ -135,6 +136,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_main_menu(query, context)
         return ConversationHandler.END
 
+# [CONTINUE WITH ALL OTHER HANDLERS: email_handler, password_handler, etc. - COPY FROM YOUR ORIGINAL CODE]
 # Sign In Flow
 async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     email = update.message.text.strip()
@@ -203,7 +205,7 @@ async def show_main_menu_message(update: Update, context: ContextTypes.DEFAULT_T
         [InlineKeyboardButton("📊 View Dashboard", callback_data='view_dashboard')],
         [InlineKeyboardButton("✏️ Edit Expense", callback_data='edit_expense')],
         [InlineKeyboardButton("🗑 Delete Expense", callback_data='delete_expense')],
-        [InlineKeyboardButton("🗓 Delete Date Range", callback_data='delete_range')],
+        [InlineKeyboardButton("🗑 Delete Date Range", callback_data='delete_range')],
         [InlineKeyboardButton("🚪 Logout", callback_data='logout')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -215,7 +217,7 @@ async def show_main_menu(query, context):
         [InlineKeyboardButton("📊 View Dashboard", callback_data='view_dashboard')],
         [InlineKeyboardButton("✏️ Edit Expense", callback_data='edit_expense')],
         [InlineKeyboardButton("🗑 Delete Expense", callback_data='delete_expense')],
-        [InlineKeyboardButton("🗓 Delete Date Range", callback_data='delete_range')],
+        [InlineKeyboardButton("🗑 Delete Date Range", callback_data='delete_range')],
         [InlineKeyboardButton("🚪 Logout", callback_data='logout')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -293,7 +295,6 @@ async def show_dashboard(query, context):
     message = f"📊 *Expense Dashboard*\n\n💰 Total Spent: ₹{total:.2f}\n\n"
     
     for exp in expenses[:10]:
-        # Handle both datetime objects and string dates
         if isinstance(exp['date'], str):
             date_str = exp['date']
         else:
@@ -305,6 +306,7 @@ async def show_dashboard(query, context):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(message, parse_mode='Markdown', reply_markup=reply_markup)
 
+# [INCLUDE ALL REMAINING HANDLERS: show_expenses_for_edit, edit_amount_handler, etc. - COPY FROM ORIGINAL]
 # Edit Expense
 async def show_expenses_for_edit(query, context):
     user_id = context.user_data.get('user_id')
@@ -318,7 +320,6 @@ async def show_expenses_for_edit(query, context):
     
     keyboard = []
     for exp in expenses:
-        # Handle both datetime objects and string dates
         if isinstance(exp['date'], str):
             date_str = exp['date']
         else:
@@ -385,7 +386,6 @@ async def show_expenses_for_delete(query, context):
     
     keyboard = []
     for exp in expenses:
-        # Handle both datetime objects and string dates
         if isinstance(exp['date'], str):
             date_str = exp['date']
         else:
@@ -472,23 +472,28 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 # =====================================================================
-# FIXED MAIN FUNCTION FOR RENDER (Polling + Flask Health Check)
+# FIXED MAIN: FLASK IN THREAD, BOT POLLING IN MAIN THREAD (NO ERRORS)
 # =====================================================================
 
 def run_flask():
-    """Simple Flask app for Render health check (runs on $PORT)."""
-    app = Flask(__name__)
+    """Flask health check in background thread (for Render port detection)."""
+    flask_app = Flask(__name__)
 
-    @app.route('/', defaults={'path': ''})
-    @app.route('/<path:path>')
+    @flask_app.route('/', defaults={'path': ''})
+    @flask_app.route('/<path:path>')
     def catch_all(path):
-        return "Bot is alive and tracking expenses! 🚀"
+        return "🤖 Expense Tracker Bot is live on Render! 💰"
 
     port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    flask_app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
 
-def run_bot():
-    """Run the Telegram bot polling in this thread."""
+def main():
+    # Start Flask in daemon thread FIRST (non-blocking)
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+    print("🌐 Flask health server started on $PORT")
+
+    # NOW run bot polling in MAIN thread (safe, no signal errors)
     BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
     if not BOT_TOKEN:
         print("ERROR: TELEGRAM_BOT_TOKEN not found!")
@@ -499,7 +504,7 @@ def run_bot():
     conv_handler = ConversationHandler(
         entry_points=[
             CommandHandler('start', start),
-            CallbackQueryHandler(button_handler)  # Handles buttons globally
+            CallbackQueryHandler(button_handler)  # Global button handling
         ],
         states={
             EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, email_handler)],
@@ -520,31 +525,16 @@ def run_bot():
             CallbackQueryHandler(button_handler)
         ],
         allow_reentry=True,
-        per_message=False  # Ignore the warning - it's fine for your use case
+        per_message=False  # Harmless warning - ignore
     )
 
     application.add_handler(conv_handler)
 
-    print("🤖 Bot polling started...")
+    print("🤖 Bot polling started in main thread...")
     application.run_polling(
         allowed_updates=Update.ALL_TYPES,
         drop_pending_updates=True
     )
-
-def main():
-    # Start Flask in main thread (Render detects port)
-    flask_thread = threading.Thread(target=run_flask, daemon=True)
-    flask_thread.start()
-    print("🌐 Flask health server started on $PORT")
-
-    # Start bot in background thread
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
-    print("🤖 Bot thread started")
-
-    # Keep main thread alive
-    while True:
-        time.sleep(1)
 
 if __name__ == '__main__':
     main()
