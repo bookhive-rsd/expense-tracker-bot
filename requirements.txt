@@ -4,3 +4,5 @@ bcrypt
 python-dotenv
 motor==3.3.2
 dnspython==2.4.2
+aiohttp
+
