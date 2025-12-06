@@ -994,7 +994,7 @@ def keep_alive():
 # --- End Of Flask ---
 
 def main():
-    # keep_alive()
+    keep_alive()
     BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', 'YOUR_BOT_TOKEN_HERE')
     
     app = Application.builder().token(BOT_TOKEN).build()
