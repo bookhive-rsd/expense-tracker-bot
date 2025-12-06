@@ -985,7 +985,7 @@ def home():
 def run_http():
     # Render sets the PORT env var. Default to 8080 if not found.
     port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=8000)
 
 def keep_alive():
     t = Thread(target=run_http)
